@@ -1,0 +1,22 @@
+1. The Data:
+    What data is important or interesting?
+        Based on Investment rules Of thumb
+        Quantative data
+    Why am I visualizing that data?
+        
+The Visualization
+    Function:
+        Exploration/Discovery
+            Users are trying to find best investment candidates
+        Analysis
+            
+    Schematic:
+        Scatter Bubble Chart
+            http://nvd3.org/examples/scatter.html (NVD3 Library)
+            http://bl.ocks.org/nsonnad/4481531
+            http://swizec.com/blog/quick-scatterplot-tutorial-for-d3-js/swizec/5337
+            http://dimplejs.org/advanced_examples_viewer.html?id=advanced_interactive_legends (Dimple Library)
+            
+        Compare Three Datasets (X,Y,Bubble Size)
+        Colored By Sector
+        arwejlnafhlavjnagvjn;afjnkavjnfvjhfvjhagv;hvaoryetvyhnuvhkdfhkbdvhbkbkv  ulg gs s

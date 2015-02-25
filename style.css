@@ -1,0 +1,125 @@
+html, body { margin:0; padding:0; overflow:hidden }
+svg { position:fixed; top:0; bottom:0; left:0; right:0; z-index: 1; }
+
+#chart text{
+  fill: white;
+  font: 10px sans-serif;
+  text-anchor: end; 
+}
+
+.titleBanner {
+    fill: #515151;
+}
+
+.title {
+    font: 60px sans-serif;
+    fill: #ffffff;
+    pointer-events: none;
+    text-anchor: middle;
+}
+
+.menutitle {
+    font: 16px sans-serif;
+    pointer-events: none;
+    text-anchor: left;
+}
+
+.legend {
+    font: 20px sans-serif;
+    fill: #414141;
+}
+
+.gridlines{
+    fill: #ffffff;
+}
+
+#xMenu {
+    position: absolute;
+    z-index: 2;
+    left: 86%;
+    top: 370px;
+}
+
+#yMenu {
+    position: absolute;
+    z-index: 2;
+    left: 86%;
+    top: 400px;
+}
+
+#zMenu {
+    position: absolute;
+    z-index: 2;
+    left: 86%;
+    top: 430px;
+}
+
+.lead {
+                font-style: italic;
+            }
+.svg-tooltip {
+                pointer-events: none;
+            }
+            .tooltip {
+                padding: 10px;
+                color: #4A22FF;
+            }
+
+.axisToggle {
+    font: 15px sans-serif;
+    fill: #414141;
+}
+
+.xAxisToggle {
+    fill: #dfdfdf;
+}
+
+.axis text{
+  font: 10px sans-serif;
+}
+
+.axis path, .axis line{
+  fill: none;
+  stroke : #fff;
+  shape-rendering: crispEdges;
+}
+
+body{
+  background: #ffffff;
+  color : #1a1a1a;
+  padding : 10px;
+}
+
+.chartContainer {
+    color: #eaeaea;
+}
+
+circle {
+  -webkit-transition: fill-opacity 250ms linear;
+}
+
+.selecting circle {
+  fill-opacity: .2;
+}
+
+.selecting circle.selected {
+  stroke: #f00;
+}
+
+.resize path {
+  fill: #666;
+  fill-opacity: .8;
+  stroke: #000;
+  stroke-width: 1.5px;
+}
+
+.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.xBrush .extent {
+  fill-opacity: .125;
+  shape-rendering: crispEdges;
+}

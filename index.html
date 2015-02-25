@@ -1,0 +1,671 @@
+<!doctype html>
+<html>
+
+
+<head>
+
+<title>U$ Dividend Champions</title>
+</head>
+
+<body>
+<filter id="glow">
+    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+    <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+</filter>
+    
+<link rel="stylesheet" type="text/css" href="style.css">
+<div id="xMenu"></div>
+<div id="yMenu"></div>
+<div id="zMenu"></div>
+<div id="chartContainer">
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://dimplejs.org/dist/dimple.v2.1.2.min.js"></script>
+<script src="fisheye.js" charset="utf-8"></script>
+<script type="text/javascript">
+
+var axisValues = [
+    "TTM ROE",
+    "Payout Ratio",
+    "Price",
+    "Annual Dividend",
+    "New Quarterly Rate",
+    "TTM EPS",
+    "TY % Growth",
+    "PEG Ratio",
+    "Debt / Equity",
+    "TTM P/E",
+    "Dividend Yield",
+    "Past 5 YR Growth"
+],
+    areaValues = [ //area values must contain only non-negative ranges
+    "Payout Ratio",
+    "TTM EPS",
+    "TTM P/E",
+    "Dividend Yield",
+    "Price",
+    "PEG Ratio",
+    "Annual Dividend",
+    "New Quarterly Rate"
+],
+    LegendValue = "Sector",
+    selectedBubbles = [],
+    filterValues = [];
+
+var myChart,
+    xAxis,
+    yAxis,
+    zAxis;
+
+var xValue = axisValues[3],  
+    yValue = axisValues[1],
+    zValue = axisValues[2]; //z should not include a negative range
+
+var V1 = axisValues[0],
+    V2 = axisValues[4],
+    V3 = axisValues[5],
+    V4 = axisValues[6],
+    V5 = axisValues[7];
+    
+var w = window,
+    width = w.innerWidth || e.clientWidth || g.clientWidth,
+    height = w.innerHeight|| e.clientHeight|| g.clientHeight,
+    chartX1 = width * 0.07,
+    chartX2 = width * 0.76,
+    legendX = width * 0.84,
+    xScaleY = (height * 0.84) + 20,
+    yScaleY = (height * 0.88) + 20,
+    zScaleY = (height * 0.92) + 20;
+
+var svg = dimple.newSvg("#chartContainer", width, height);
+    
+//Sliders
+var xSlider,
+    xSliderAxis,
+    xBrush,
+    xBrushg,
+    xFilter,
+    ySlider,
+    ySliderAxis,
+    yBrush,
+    yBrushg,
+    yFilter,
+    arc;
+    
+//Graph Title
+var titleBanner = svg.append("rect")
+                    .attr("width", width)
+                    .attr("height", 70)
+                    .attr("x", 0)
+                    .attr("y", 0)
+                    .attr('class', 'titleBanner');
+
+var title = svg.append("g")
+            .attr("width", width)
+            .attr("height", height)
+            .selectAll("text")
+            .data(["US Dividend Champions"])
+            .enter()
+            .append("text")
+            .attr("x", width / 2)
+            .attr("y", 60)
+            .attr('class', 'title')
+            .text(function (d) { return d; });
+
+var xFilterTitle = svg.append("g")
+            .selectAll("text")
+            .data(["updated 01.30.2015"])
+            .enter()
+            .append("text")
+            .attr("x", width * 0.88)
+            .attr("y", height *0.96)
+            .attr('class', 'menutitle')
+            .text(function (d) { return d; });
+
+//Axis Filter Titles
+var filterLegend = svg.append("text")
+            .attr('class', 'legend')
+            .attr("dy", ".35em")
+            .attr("text-anchor", "middle")
+            .attr("transform", 
+                  "translate(" + (chartX1 + 20) + ","
+                  + yScaleY + ") rotate(-90)")
+            .text("Filter Axes");
+    
+var xFilterTitle = svg.append("g")
+            .selectAll("text")
+            .data(["X"])
+            .enter()
+            .append("text")
+            .attr("x", chartX1 + 60)
+            .attr("y", xScaleY + 5)
+            .attr('class', 'menutitle')
+            .text(function (d) { return d; });
+    
+var yFilterTitle = svg.append("g")
+        .selectAll("text")
+        .data(["Y"])
+        .enter()
+        .append("text")
+        .attr("x", chartX1 + 60)
+        .attr("y", yScaleY + 5)
+        .attr('class', 'menutitle')
+        .text(function (d) { return d; });
+
+var zFilterTitle = svg.append("g")
+        .selectAll("text")
+        .data(["Z"])
+        .enter()
+        .append("text")
+        .attr("x", chartX1 + 60)
+        .attr("y", zScaleY + 5)
+        .attr('class', 'menutitle')
+        .text(function (d) { return d; });
+    
+d3.json("data.json", function (data) {
+    //Filter Data
+    filterData();
+    
+    // Create the chart
+    myChart = new dimple.chart(svg, data);
+    myChart.setBounds(chartX1, 100, chartX2, height*0.65)
+    
+    
+    
+    //ADD Axis Toggles
+    var toggleLegend = svg.append("text")
+            .attr("x", legendX)             
+            .attr("y", 360)
+            .attr('class', 'legend')
+            .text("Toggle Axes");
+    
+    //ADD Chart Axis
+    xAxis = myChart.addMeasureAxis("x", xValue);
+    yAxis = myChart.addMeasureAxis("y", yValue);
+    zAxis = myChart.addMeasureAxis("z", zValue);
+    xAxis.fontSize = "auto";
+    yAxis.fontSize = "auto";
+    //Set sector Colours
+    setColors(myChart);
+    
+    //ADD Chart Series, this draws the bubbles
+    var bubbles = myChart.addSeries(["Company Name", "Ticker", V1, V2, V3,V4,V5, LegendValue], dimple.plot.bubble);
+    bubbles.addEventHandler("click", function (b) { toggleBubble(b); });
+    
+    //ADD Legend
+    var sectorLegend = myChart.addLegend((legendX*1.12), 115, 60, 300, "Right");
+    sectorLegend.fontSize = "auto";
+    
+    //Drop Down Menus
+    var xTitle = svg.append("g")
+            .selectAll("text")
+            .data(["X"])
+            .enter()
+            .append("text")
+            .attr("x", legendX + 10)
+            .attr("y", 389)
+            .attr('class', 'menutitle')
+            .text(function (d) { return d; });
+    
+    var yTitle = svg.append("g")
+            .selectAll("text")
+            .data(["Y"])
+            .enter()
+            .append("text")
+            .attr("x", legendX + 10)
+            .attr("y", 419)
+            .attr('class', 'menutitle')
+            .text(function (d) { return d; });
+    
+    var zTitle = svg.append("g")
+            .selectAll("text")
+            .data(["Z"])
+            .enter()
+            .append("text")
+            .attr("x", legendX + 10)
+            .attr("y", 449)
+            .attr('class', 'menutitle')
+            .text(function (d) { return d; });
+    
+    var xMenu = d3.select("#xMenu")
+        .append("select")
+        .on("change", function() {
+            //SET new Value
+            xValue = this.options[this.selectedIndex].__data__;
+            
+            //REMOVE Old Chart
+            clear();
+            
+            //CREATE New Chart
+            createChart();
+        })
+        .selectAll("option")
+        .data(axisValues)
+        .enter()
+        .append("option")
+        .attr("value", function (d) {
+            return d;
+        })
+        .text(function (d) {
+            return d;
+        })
+        .property("selected", function(d){ return d === xValue; });
+    
+    var yMenu = d3.select("#yMenu")
+        .append("select")
+        .on("change", function() {
+            //SET new Value
+            yValue = this.options[this.selectedIndex].__data__;
+            
+            //REMOVE Old Chart
+            clear();
+            
+            //CREATE New Chart
+            createChart();
+        })
+        .selectAll("option")
+        .data(axisValues)
+        .enter()
+        .append("option")
+        .attr("value", function (d) {
+            return d;
+        })
+        .text(function (d) {
+            return d;
+        })
+        .property("selected", function(d){ return d === yValue; });
+    
+    var zMenu = d3.select("#zMenu")
+        .append("select")
+        .on("change", function() {
+            //SET new Value
+            zValue = this.options[this.selectedIndex].__data__;
+            
+            //REMOVE Old Chart
+            clear();
+            
+            //CREATE New Chart
+            createChart();
+        })
+        .selectAll("option")
+        .data(areaValues)
+        .enter()
+        .append("option")
+        .attr("value", function (d) {
+            return d;
+        })
+        .text(function (d) {
+            return d;
+        })
+        .property("selected", function(d){ return d === zValue; });
+    
+    myChart.draw();
+    drawSelectedBubbles();
+    
+    // This is a critical step.  By doing this we orphan the legend. This
+    // means it will not respond to graph updates.  Without this the legend
+    // will redraw when the chart refreshes removing the unchecked item and
+    // also dropping the events we define below.
+    myChart.legends = [];
+
+    // This block simply adds the legend title. I put it into a d3 data
+    // object to split it onto 2 lines.  This technique works with any
+    // number of lines, it isn't dimple specific.
+    svg.selectAll("title_text")
+      .data(["Toggle Sectors"])
+      .enter()
+      .append("text")
+        .attr("x", (legendX))
+        .attr("y", 115 )
+        .attr('class', 'legend')
+        .text(function (d) { return d; });
+
+    // Get a unique list of Sector values to use when filtering
+    filterValues = dimple.getUniqueValues(data, LegendValue);
+    
+    //ADD Sliders
+    buildSliders(xAxis, yAxis, zAxis);
+    
+    // Get all the rectangles from our now orphaned legend
+    sectorLegend.shapes.selectAll("rect")
+    //Add a click event to each rectangle
+    .on("click", function (e) {
+        // This indicates whether the item is already visible or not
+        var hide = false;
+        var newFilters = [];
+        // If the filters contain the clicked shape, hide it
+        filterValues.forEach(function (f) {
+          if (f === e.aggField.slice(-1)[0]) {
+            hide = true;
+          } else {
+            newFilters.push(f);
+          }
+        
+        });
+        // Hide the shape or show it
+        if (hide) {
+          d3.select(this).style("opacity", 0.1);
+        } else {
+          newFilters.push(e.aggField.slice(-1)[0]);
+          d3.select(this).style("opacity", 0.7);
+        }
+        // Update the filters
+        filterValues = newFilters;
+        // Filter the data
+        myChart.data = dimple.filterData(data, LegendValue, filterValues);
+        // Passing a duration parameter makes the chart animate. Without
+        // it there is no transition
+        filterAxes();
+        
+        myChart.draw();
+        drawSelectedBubbles();
+        
+    });
+    
+    function clear() {
+        clearSliders();
+        var clear = [];
+        myChart.data = dimple.filterData(data, LegendValue, clear);
+        myChart.draw(00); //transition out
+        myChart.axes[0].titleShape.text("");
+        myChart.axes[1].titleShape.text("");
+        myChart.axes.forEach(function(axes){
+            axes.shapes.remove();
+        });
+        myChart.svg.selectAll.remove;
+    }
+    
+    function createChart() {setColors(myChart)
+        //Instantiate Chart
+        myChart = new dimple.chart(svg, data);
+        myChart.setBounds(chartX1, 100, chartX2, height*0.65)
+        
+        //Set New Axes
+        xAxis = myChart.addMeasureAxis("x", xValue)
+        yAxis = myChart.addMeasureAxis("y", yValue);
+        zAxis = myChart.addMeasureAxis("z", zValue);
+        xAxis.fontSize = "auto";
+        yAxis.fontSize = "auto";
+        
+        //Set Sector Colors
+        setColors(myChart)
+        
+        //Set New Series
+        bubbles = myChart.addSeries(["Company Name", "Ticker", V1, V2, V3,V4,V5, LegendValue], dimple.plot.bubble);
+        bubbles.addEventHandler("click", function (b) { toggleBubble(b); });
+        
+        //Draw before filtering to establish color scheme
+        myChart.draw();
+        myChart.data = dimple.filterData(data, LegendValue, clear);
+        myChart.draw();
+        myChart.data = dimple.filterData(data, LegendValue, filterValues);
+        myChart.draw(); 
+        drawSelectedBubbles() 
+        
+        //UPDATE Sliders
+        buildSliders(xAxis, yAxis, zAxis);
+    }
+    
+    function buildSliders(xAxis, yAxis, zAxis) {
+        
+        xSlider = d3.scale.linear()
+            .domain([xAxis._min,xAxis._max])
+            .range([chartX1 + 100, chartX2 + 75]);
+        
+        ySlider = d3.scale.linear()
+            .domain([yAxis._min,yAxis._max])
+            .range([chartX1 + 100, chartX2 + 75]);
+        
+        zSlider = d3.scale.linear()
+            .domain([zAxis._min,zAxis._max])
+            .range([chartX1 + 100, chartX2 + 75]);
+
+        //Initialize Brushes
+        xBrush = d3.svg.brush()
+            .x(xSlider)
+            .extent([xAxis._min, xAxis._max])
+            .on("brush", brushmove);
+        
+        yBrush = d3.svg.brush()
+            .x(ySlider)
+            .extent([yAxis._min, yAxis._max])
+            .on("brush", brushmove);
+        
+        zBrush = d3.svg.brush()
+            .x(zSlider)
+            .extent([zAxis._min, zAxis._max])
+            .on("brush", brushmove);
+
+        //Brush Ends
+        arc = d3.svg.arc()
+            .outerRadius(10)
+            .startAngle(0)
+            .endAngle(function(d, i) { return i ? -Math.PI : Math.PI; });
+
+        //Slider Axes
+        xSliderAxis = svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + (xScaleY) + ")")
+            .call(d3.svg.axis().scale(xSlider).orient("bottom"));
+        
+        ySliderAxis = svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + (yScaleY) + ")")
+            .call(d3.svg.axis().scale(ySlider).orient("bottom"));
+        
+        zSliderAxis = svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + (zScaleY) + ")")
+            .call(d3.svg.axis().scale(zSlider).orient("bottom"));
+
+        //DRAW Brush
+        xBrushg = svg.append("g")
+            .attr("class", "xBrush")
+            .call(xBrush);
+        
+        yBrushg = svg.append("g")
+            .attr("class", "xBrush")
+            .call(yBrush);
+        
+        zBrushg = svg.append("g")
+            .attr("class", "xBrush")
+            .call(zBrush);
+
+        xBrushg.selectAll(".resize").append("path")
+            .attr("transform", "translate(0," +  xScaleY + ")")
+            .attr("d", arc);
+        
+        yBrushg.selectAll(".resize").append("path")
+            .attr("transform", "translate(0," +  yScaleY + ")")
+            .attr("d", arc);
+        
+        zBrushg.selectAll(".resize").append("path")
+            .attr("transform", "translate(0," +  zScaleY + ")")
+            .attr("d", arc);
+
+        xBrushg.selectAll("rect")
+            .attr("y", xScaleY-10)
+            .attr("height", 20);
+        
+        yBrushg.selectAll("rect")
+            .attr("y", yScaleY-10)
+            .attr("height", 20);
+        
+        zBrushg.selectAll("rect")
+            .attr("y", zScaleY-10)
+            .attr("height", 20);
+
+        brushmove();
+    }
+    
+    function clearSliders() {
+        xAxis.overrideMin = null;
+        xAxis.overrideMax = null;
+        xBrushg.remove();
+        xSliderAxis.remove();
+        
+        yAxis.overrideMin = null;
+        yAxis.overrideMax = null;
+        yBrushg.remove();
+        ySliderAxis.remove();
+        
+        zAxis.overrideMin = null;
+        zAxis.overrideMax = null;
+        zBrushg.remove();
+        zSliderAxis.remove();
+    }
+    
+    function brushmove() {
+        xBrush.extent();
+        yBrush.extent();
+        zBrush.extent();
+        
+        filterAxes();
+        myChart.draw(); 
+        drawSelectedBubbles() 
+    }
+    
+    function filterAxes() {
+        var xmin = xBrush.extent()[0];
+        var xmax = xBrush.extent()[1];
+        var ymin = yBrush.extent()[0];
+        var ymax = yBrush.extent()[1];
+        var zmin = zBrush.extent()[0];
+        var zmax = zBrush.extent()[1];
+        
+        var ir= [];
+        
+        myChart.data = dimple.filterData(data, LegendValue, filterValues);
+        
+        xAxis.overrideMin = xmin;
+        xAxis.overrideMax = xmax;
+        yAxis.overrideMin = ymin;
+        yAxis.overrideMax = ymax;
+        zAxis.overrideMin = zmin;
+        zAxis.overrideMax = zmax;
+        
+        var i = 0;
+        while(i < myChart.data.length) {
+            var d = myChart.data[i];
+            var xval = eval( 'd' + '["' + xValue + '"]' );
+            var yval = eval( 'd' + '["' + yValue + '"]' );
+            var zval = eval( 'd' + '["' + zValue + '"]' );
+            
+            if ((xval > xmax) || (xval < xmin) || 
+                (yval > ymax) || (yval < ymin) ||
+                (zval > zmax) || (zval < zmin)) {
+                ir.push(i);
+                myChart.data.splice(i,1);
+            } else {
+               i++; 
+            }
+        }
+    }
+    
+    function filterData() {
+        var i = 0;
+        while(i < data.length) {
+            var invalidData = false;
+            
+            for (var name in data[i]) {
+                if (data[i][name] === 'n/a') {
+                    invalidData = true;
+                    console.log(data[i][name]);
+                }
+            }
+            
+            if (invalidData) {
+                data.splice(i,1);
+            } else {
+               i++; 
+            }
+        }
+    }
+});
+    
+function toggleBubble(b) {
+    
+    var id = getID(b.seriesValue);
+    var alreadySelected = contains(selectedBubbles,id)
+    
+    if (alreadySelected) {
+        remove(selectedBubbles, id);
+    } else {
+        selectedBubbles.push(id);
+    }
+    
+    console.log(selectedBubbles);
+    myChart.draw();
+    drawSelectedBubbles();
+}
+    
+function drawSelectedBubbles() {
+    selectedBubbles.forEach( function (d,i) {
+        var id = d;
+        var b = document.getElementById(id)
+        if (b != null) {
+            b.setAttribute("fill", "white")
+            b.setAttribute("stroke-width", "4");
+            b.setAttribute("opacity", 0.8);
+            b.style = "filter:url(#drop-shadow)";
+            var c = b.style.stroke;
+            console.log(c);
+        }
+    });
+}
+    
+function remove(a, id) {
+    var ri = 0;
+    
+    for (var i = 0; i < a.length; i++) {
+        if (a[i] === id) {
+            ri = i;
+        }
+    }
+    
+    document.getElementById(id).setAttribute("stroke-width", "1");
+    a.splice(ri,1);
+    
+    return a;
+}
+    
+function contains(a, obj) {
+    for (var i = 0; i < a.length; i++) {
+        if (a[i] === obj) {
+            return true;
+        }
+    }
+    return false;
+}
+    
+function getID(values) {
+    //Parse the id of a Bubble
+    var id = "";
+    values.forEach(function(d,i) {
+        id += d + "/"
+    });
+    id = id.substr(0, id.length-1); 
+    id += "____";
+    
+    return id;
+}
+
+function setColors(myChart) {
+    myChart.assignColor("Materials", "#CC3399", "#900060", 0.7);
+    myChart.assignColor("Industrials", "#FDFD63", "#CCCC00", 0.7);
+    myChart.assignColor("Health Care", "#FF6666", "#CC0000", 0.7);
+    myChart.assignColor("Financials", "#FFCC66", "#DBA730", 0.7);
+    myChart.assignColor("Consumer Staples", "#9966FF", "#6030D0", 0.7);
+    myChart.assignColor("Energy", "#CCFF66", "#99C930", 0.7);
+    myChart.assignColor("Consumer Discretionary", "#339966", "#006030", 0.7);
+    myChart.assignColor("Information Tech", "#0066CC", "#0030A6", 0.7);
+    myChart.assignColor("Utilities", "#00CC99", "#00A660", 0.7);
+    myChart.assignColor("Telecommunications", "#996633", "#603000", 0.7);
+}
+    
+</script>
+</div>
+</body>
+</html>
